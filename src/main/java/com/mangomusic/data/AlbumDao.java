@@ -95,41 +95,42 @@ public class AlbumDao {
 
         return albums;
     }
+    // [ Bug #6: AlbumDao.searchAlbums() Inefficient ResultSet getter ]
+    public List<Album> searchAlbums(String searchTerm)
+    {
+           List<Album> albums = new ArrayList<>();
 
-    public List<Album> searchAlbums(String searchTerm) {
-        List<Album> albums = new ArrayList<>();
-        String query = "SELECT al.album_id, al.artist_id, al.title, al.release_year, ar.name as artist_name " +
+        String query =
+                "SELECT al.album_id, al.artist_id, al.title, al.release_year, ar.name as artist_name " +
                 "FROM albums al " +
                 "JOIN artists ar ON al.artist_id = ar.artist_id " +
                 "WHERE al.title LIKE ? " +
                 "ORDER BY al.title";
 
-        try {
-            Connection connection = dataManager.getConnection();
+        try (Connection connection = dataManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query))
+        {
+            statement.setString(1, "%" + searchTerm + "%");
 
-            try (PreparedStatement statement = connection.prepareStatement(query)) {
+            try (ResultSet results = statement.executeQuery())
+            {
+                while (results.next())
+                {
+                    int albumId = results.getInt("album_id");
+                    int artistId = results.getInt("artist_id"); // got rid of 'artistIdStr' that had no business being here
+                    String title = results.getString("title");  // and fixed method call for artistId
+                    int releaseYear = results.getInt("release_year");
+                    String artistName = results.getString("artist_name");
 
-                statement.setString(1, "%" + searchTerm + "%");
-
-                try (ResultSet results = statement.executeQuery()) {
-                    while (results.next()) {
-                        int albumId = results.getInt("album_id");
-                        String artistIdStr = results.getString("artist_id");
-                        int artistId = Integer.parseInt(artistIdStr);
-                        String title = results.getString("title");
-                        int releaseYear = results.getInt("release_year");
-                        String artistName = results.getString("artist_name");
-
-                        albums.add(new Album(albumId, artistId, title, releaseYear, artistName));
-                    }
+                    albums.add(new Album(albumId, artistId, title, releaseYear, artistName));
                 }
             }
-
-        } catch (SQLException e) {
+        }
+        catch (SQLException e)
+        {
             System.err.println("Error searching for albums: " + e.getMessage());
             e.printStackTrace();
         }
-
         return albums;
     }
 }
