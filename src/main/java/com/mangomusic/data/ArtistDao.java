@@ -16,8 +16,8 @@ public class ArtistDao {
     public ArtistDao(DataManager dataManager) {
         this.dataManager = dataManager;
     }
-
-    public List<Artist> searchArtists(String searchTerm) // Bug #1 Code quality - missing resource cleanup 
+    // [ Bug #1 Code quality - missing resource cleanup ]
+    public List<Artist> searchArtists(String searchTerm)
     {
            List<Artist> artists = new ArrayList<>();
 
@@ -26,17 +26,18 @@ public class ArtistDao {
                 "FROM artists " +
                 "WHERE name LIKE ? " +
                 "ORDER BY name";
+        //------------------------------------------------------
+        // Open:  Connection → PreparedStatement → ResultSet
+        // Close: ResultSet → PreparedStatement → Connection
+        //------------------------------------------------------
+        // Java closes Connection and PreparedStatement in reverse order!
+        try(Connection connection = dataManager.getConnection();                // <--- 'connection' moved into try() so can close
+            PreparedStatement statement = connection.prepareStatement(query))   // <--- 'statement' has a dependency on 'connection'
+        {                                                                       //       so we pass them in the same TWR.
+            statement.setString(1, "%" + searchTerm + "%");
 
-        try
-        {
-            Connection connection = dataManager.getConnection();
-
-            try (PreparedStatement statement = connection.prepareStatement(query))
+            try (ResultSet results = statement.executeQuery())
             {
-                statement.setString(1, "%" + searchTerm + "%");
-
-                ResultSet results = statement.executeQuery();
-
                 while (results.next())
                 {
                     int artistId = results.getInt("artist_id");
