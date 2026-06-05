@@ -1,5 +1,6 @@
 package com.mangomusic.data;
 
+import com.mangomusic.models.AlbumPlay;
 import com.mangomusic.models.ReportResult;
 
 import java.sql.Connection;
@@ -677,4 +678,21 @@ public class ReportsDao {
             return "Emerging Fan";
         }
     }
+
+    // See the top 5 most-played albums within each genre
+    public List<AlbumPlay> getMostPlayedAlbumsByGenre()
+    {
+           List<AlbumPlay> genreMostPlayed = new ArrayList<>();
+
+        // genre, album_title, artist_name, play_count, (+genre_rank SUBQUERY)
+        String query =
+                "SELECT artists.primary_genre, albums.title, artists.artist_name, album_plays.completed " +
+                "FROM album_plays" +
+                "JOIN albums ON album_plays.album_id = album.album_id" +
+                "JOIN artists ON albums.artist_id = artists.artist_id" +
+                "WHERE "
+
+
+
+
 }
