@@ -26,6 +26,7 @@ public class ArtistDao {
                 "FROM artists " +
                 "WHERE name LIKE ? " +
                 "ORDER BY name";
+
         //------------------------------------------------------
         // Open:  Connection → PreparedStatement → ResultSet
         // Close: ResultSet → PreparedStatement → Connection

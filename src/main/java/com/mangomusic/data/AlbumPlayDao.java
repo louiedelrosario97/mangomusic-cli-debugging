@@ -18,9 +18,13 @@ public class AlbumPlayDao {
         this.dataManager = dataManager;
     }
 
-    public List<AlbumPlay> getUserRecentPlays(int userId, int limit) {
-        List<AlbumPlay> plays = new ArrayList<>();
-        String query = "SELECT ap.play_id, ap.user_id, ap.album_id, ap.played_at, ap.completed, " +
+    // [ Bug #4: Resource leak - connection not closed ]
+    public List<AlbumPlay> getUserRecentPlays(int userId, int limit)
+    {
+           List<AlbumPlay> plays = new ArrayList<>();
+
+        String query =
+                "SELECT ap.play_id, ap.user_id, ap.album_id, ap.played_at, ap.completed, " +
                 "       al.title as album_title, ar.name as artist_name " +
                 "FROM album_plays ap " +
                 "JOIN albums al ON ap.album_id = al.album_id " +
@@ -29,14 +33,14 @@ public class AlbumPlayDao {
                 "ORDER BY ap.played_at DESC " +
                 "LIMIT ?";
 
-        try {
-            Connection connection = dataManager.getConnection();
-            PreparedStatement statement = connection.prepareStatement(query);
-
+        try(Connection connection = dataManager.getConnection();
+            PreparedStatement statement = connection.prepareStatement(query))
+        {
             statement.setInt(1, userId);
             statement.setInt(2, limit);
 
-            try (ResultSet results = statement.executeQuery()) {
+            try (ResultSet results = statement.executeQuery())
+            {
                 while (results.next()) {
                     long playId = results.getLong("play_id");
                     int uid = results.getInt("user_id");
@@ -49,14 +53,13 @@ public class AlbumPlayDao {
                     plays.add(new AlbumPlay(playId, uid, albumId, playedAt, completed, albumTitle, artistName));
                 }
             }
-
-            statement.close();
-
-        } catch (SQLException e) {
+           // "statement.close();" <------------ we don't need this. TWR guarantees all three close.
+        }
+        catch (SQLException e)
+        {
             System.err.println("Error getting user plays: " + e.getMessage());
             e.printStackTrace();
         }
-
         return plays;
     }
 }
